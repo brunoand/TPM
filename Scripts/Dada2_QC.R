@@ -22,8 +22,8 @@ fnRs <- sort(list.files(path, pattern="_R2_001.fastq.gz", full.names = TRUE))
 
 #Generating quality plots
 plot_qualF <- plotQualityProfile(fnFs[1])
-ggsave(paste0(dirname(Output), '/', basename(sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(Output))),'_R1.png'), plot_qualF, device="png")
+ggsave(paste0(dirname(Output), '/', Output,'_R1.png'), plot_qualF, device="png")
 
 
 plot_qualR <- plotQualityProfile(fnRs[1])
-ggsave(paste0(dirname(Output), '/', basename(sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(Output))),'_R2.png'), plot_qualF, device="png")
+ggsave(paste0(dirname(Output), '/', Output,'_R2.png'), plot_qualF, device="png")

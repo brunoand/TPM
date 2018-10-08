@@ -328,7 +328,7 @@ process qualityAssessment {
 	#Logs version of the software and executed command
 
 
-	Rscript /opt/Scripts/Dada2_QC.R
+	Rscript /opt/Scripts/Dada2_QC.R $params.outdir
 """
 
 }
