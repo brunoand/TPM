@@ -129,85 +129,6 @@ if( !Log_dir.exists() ) {
 
 
 
-// ------------------------------------------------------------------------------
-//                             Trimming and Filtering
-// ------------------------------------------------------------------------------
-
-/**
-	The trimming process will be performed using the bbduk software
-
-*/
-
-
-        if (params.library == "paired-end") {
-                to_trim = Channel.fromFilePairs(params.input + '*R{1,2}*{fq,fastq}')
-        }
-        else {
-                to_trim = Channel.fromFile(params.input + '*.fastq')
-        }
-
-process trim {
-	publishDir Fastq_dir, mode: 'copy', pattern: "*_trimmed*{fq,fastq}"
-	publishDir QC_dir, mode: 'copy', pattern: "*.html"
-	publishDir Log_dir, mode: 'copy', pattern: "Trim_log.txt"
-	input:
-	set val(id), file(reads1), file(reads2) from to_trim
-	file(adapters) from file(params.adapters)
-	file(artifacts) from file(params.artifacts)
-	file(phix174ill) from file(params.phix174ill)
-
-	output:
-	file("*_trimmed*.fq") into todecontaminate
-	file("*_trimmed*.fq") into trimmedreads
-	file "*_fastqc.html"
-	file "Trim_log.txt"
-	val Fastq_dir into to_bin
-	when:
-	params.mode == "QC" || params.mode == "Complete"
-      script:
-      """
-	#Measures execution time
-	sysdate=\$(date)
-	starttime=\$(date +%s.%N)
-	echo \"Performing Quality Control. STEP 2 [Trimming] at \$sysdate\" >> Trim_log.txt
-	echo \" \"
-	#Sets the maximum memory to the value requested in the config file
-	maxmem=\$(echo ${task.memory} | sed 's/ //g' | sed 's/B//g')
-	#Defines command for trimming of adapters and low quality bases
-	if [ \"$params.library\" = \"paired-end\" ]; then
-		CMD=\"bbduk.sh -Xmx\"\$maxmem\" in=${reads1[0]} in2=${reads1[1]} out=${id}_trimmed_R1_tmp.fq out2=${id}_trimmed_R2_tmp.fq outs=${id}_trimmed_singletons_tmp.fq ktrim=r k=$params.kcontaminants mink=$params.mink hdist=$params.hdist qtrim=rl trimq=$params.Quality  minlength=$params.minlength ref=$adapters qin=$params.Pcoding threads=${task.cpus} tbo tpe ow\"
-	else
-		CMD=\"bbduk.sh -Xmx\"\$maxmem\" in=$reads1 out=`basename $reads1 | sed -r 's/_R.{1,}//'`_trimmed_tmp.fq ktrim=r k=$params.kcontaminants mink=$params.mink hdist=$params.hdist qtrim=rl trimq=$params.Quality  minlength=$params.minlength ref=$adapters qin=$params.Pcoding threads=${task.cpus} tbo tpe ow\"
-	fi
-	#Trims adapters and low quality bases	
-	exec \$CMD 2>&1 | tee tmp.log
-	
-
-	#Defines command for removing synthetic contaminants
-	if [ \"$params.library\" = \"paired-end\" ]; then
-		bbduk.sh -Xmx\"\$maxmem\" in=${id}_trimmed_R1_tmp.fq in2=${id}_trimmed_R2_tmp.fq out=${id}_trimmed_R1.fq out2=${id}_trimmed_R2.fq k=31 ref=$phix174ill,$artifacts qin=$params.Pcoding threads=${task.cpus} ow
-		fastqc --quiet --noextract --format fastq --outdir=. --threads ${task.cpus} ${id}_trimmed_R1.fq ${id}_trimmed_R2.fq
-	else
-		bbduk.sh -Xmx\"\$maxmem\" in=`basename $reads1 | sed -r 's/_R.{1,}//'`_trimmed_tmp.fq out=`basename $reads1 | sed -r 's/_R.{1,}//'`_trimmed.fq k=31 ref=$phix174ill,$artifacts qin=$params.Pcoding threads=${task.cpus} ow
-		fastqc --quiet --noextract --format fastq --outdir=. --threads ${task.cpus} ${id}_trimmed_R1.fq
-	fi
-	#Removes synthetic contaminants and logs some figures (singleton read file, 
-	#that exists iif the library layout was 'paired')
-	if [ \"$params.library\" = \"paired-end\" ]; then
-		bbduk.sh -Xmx\"\$maxmem\" in=${id}_trimmed_singletons_tmp.fq out=${id}_trimmed_singletons.fq k=31 ref=$phix174ill,$artifacts qin=$params.Pcoding threads=${task.cpus} ow
-		
-		
-fi
-	
-	#Removes tmp files. This avoids adding them to the output channels
-	rm -rf ${id}_trimmed*_tmp.fq
-	cat Trim_log.txt tmp.log
-	"""
-}
-
-
-	//to_make_bin =  Channel.value(Fastq_dir)
-
 
 // ------------------------------------------------------------------------------
 //                    		    Binning
@@ -407,7 +328,7 @@ process qualityAssessment {
 	#Logs version of the software and executed command
 
 
-	Rscript /opt/Scripts/dada2_QC.R $reads
-	"""
+	Rscript /opt/Scripts/Dada2_QC.R
+"""
 
 }

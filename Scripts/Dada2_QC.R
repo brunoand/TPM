@@ -16,8 +16,8 @@ Output <- args[2]
 #Trim <- args[5]
 
 #These variables will hold the list with the full paths for each R of the paired-end reads
-fnFs <- sort(list.files(path, pattern="_R1_001.(fastq.gz|fastq|fq|fq.gz)", full.names = TRUE))
-fnRs <- sort(list.files(path, pattern="_R2_001.(fastq.gz|fastq|fq|fq.gz)", full.names = TRUE))
+fnFs <- sort(list.files(path, pattern="_R1_001.fastq.gz", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern="_R2_001.fastq.gz", full.names = TRUE))
 
 
 #Generating quality plots
