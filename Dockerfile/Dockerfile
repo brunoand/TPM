@@ -112,7 +112,7 @@ RUN pip3 install scikit-bio
 RUN git clone https://github.com/brunoand/TPM.git && \
         chmod +x TPM/Scripts/*.py && \
 	chmod +x TPM/Scripts/*.R && \
-	echo bc && \
+	echo bca && \
         mv TPM/Scripts/ /opt/
  
 RUN apt install python3-tk

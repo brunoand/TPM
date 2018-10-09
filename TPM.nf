@@ -140,15 +140,7 @@ if( !Log_dir.exists() ) {
 */
 
 
-        if (params.mode == "Complete") {
-                to_make_bin = to_bin.take(1)
-        }
-	else { 
-		to_make_bin = Channel.value(Fastq_dir)
-	}
-
-
-
+	to_make_bin = Channel.value(params.input)
 
 process binning {
         publishDir Matrix_dir, mode: 'copy', pattern: "*.txt"
@@ -309,7 +301,7 @@ process diversity {
 
 
 //Creates the channel which performs the QC
-toQC = rawreads 
+toQC = Channel.value(params.input)
 
 //Process performing all the Quality Assessment
 process qualityAssessment {
@@ -317,9 +309,9 @@ process qualityAssessment {
 	publishDir  QC_dir, mode: 'copy', pattern: "*.{png,pdf}"
 	  	
 	input:
-   	set val(step), file(reads), val(label), val(stem) from toQC
+   	val(path) from toQC
 	output:
-	file "*png" 
+	file "*pdf" 
 	when:
 	params.mode == "QC" | params.mode == "Complete"
    	script:
@@ -328,7 +320,7 @@ process qualityAssessment {
 	#Logs version of the software and executed command
 	echo a
 
-	Rscript /storage/raid/home/m991833/TPM/Scripts/Dada2_QC.R $reads Teste
+	Rscript /storage/raid/home/m991833/TPM/Scripts/Dada2_QC.R /storage/raid/home/m991833/TPM/$params.input Teste
 """
 
 }
