@@ -121,10 +121,10 @@ if( !Log_dir.exists() ) {
 */
 
 	if (params.library == "paired-end") {
-		rawreads = Channel.fromFilePairs(params.input + '*R{1,2}*fastq')
+		rawreads = Channel.fromFilePairs(params.input + '*R{1,2}*fastq{.gz,}')
 	}
 	else {
-		rawreads = Channel.fromFile(params.input + '*.fastq')
+		rawreads = Channel.fromFile(params.input + '*.fastq{.gz,}')
 	}
 
 
@@ -314,21 +314,21 @@ toQC = rawreads
 //Process performing all the Quality Assessment
 process qualityAssessment {
 	
-	publishDir  QC_dir, mode: 'copy', pattern: "*.{html,txt}"
+	publishDir  QC_dir, mode: 'copy', pattern: "*.{png,pdf}"
 	  	
 	input:
    	set val(step), file(reads), val(label), val(stem) from toQC
 	output:
-	file "*_fastqc.html" 
+	file "*png" 
 	when:
 	params.mode == "QC" | params.mode == "Complete"
    	script:
 	"""	
 	
 	#Logs version of the software and executed command
+	echo a
 
-
-	Rscript /opt/Scripts/Dada2_QC.R $params.outdir
+	Rscript /storage/raid/home/m991833/TPM/Scripts/Dada2_QC.R $reads Teste
 """
 
 }

@@ -16,14 +16,14 @@ Output <- args[2]
 #Trim <- args[5]
 
 #These variables will hold the list with the full paths for each R of the paired-end reads
-fnFs <- sort(list.files(path, pattern="_R1_001.fastq.gz", full.names = TRUE))
-fnRs <- sort(list.files(path, pattern="_R2_001.fastq.gz", full.names = TRUE))
+fnFs <- sort(list.files(path, pattern="_R1_001.(fastq.gz|fastq|fq|fq.gz)", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern="_R2_001.(fastq.gz|fastq|fq|fq.gz)", full.names = TRUE))
 
 
 #Generating quality plots
-plot_qualF <- plotQualityProfile(fnFs[1])
-ggsave(paste0(dirname(Output), '/', Output,'_R1.png'), plot_qualF, device="png")
+plot_qualF <- plotQualityProfile(fnFs, aggregate = TRUE)
+ggsave(paste0(basename(Output), '_R1.pdf'), plot_qualF, device="pdf")
 
 
-plot_qualR <- plotQualityProfile(fnRs[1])
-ggsave(paste0(dirname(Output), '/', Output,'_R2.png'), plot_qualF, device="png")
+plot_qualR <- plotQualityProfile(fnRs, aggregate = TRUE)
+ggsave(paste0(basename(Output),'_R2.pdf'), plot_qualR, device="pdf")

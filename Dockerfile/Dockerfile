@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     tar \
     sudo \
     locales \
+    xorg-dev \
     libatlas3-base \
     libfreetype6-dev \
     libbz2-dev \
@@ -54,7 +55,7 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
 RUN wget https://cran.r-project.org/src/base/R-3/R-3.4.0.tar.gz && \
     tar -zxf R-3.4.0.tar.gz && \ 
     cd R-3.4.0 && \
-    ./configure --with-x=no --enable-R-shlib=yes --with-readline=no --with-cairo=yes && \
+    ./configure --enable-R-shlib=yes --with-readline=no --with-cairo=yes && \
     make && \
     make install && \
     export PATH=~/software/R/R-3.4.0/bin:$PATH
@@ -111,7 +112,7 @@ RUN pip3 install scikit-bio
 RUN git clone https://github.com/brunoand/TPM.git && \
         chmod +x TPM/Scripts/*.py && \
 	chmod +x TPM/Scripts/*.R && \
-	echo a && \
+	echo bc && \
         mv TPM/Scripts/ /opt/
  
 RUN apt install python3-tk
