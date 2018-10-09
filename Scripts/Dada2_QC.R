@@ -19,7 +19,9 @@ Output <- args[2]
 fnFs <- sort(list.files(path, pattern="_R1_001.(fastq.gz|fastq|fq|fq.gz)", full.names = TRUE))
 fnRs <- sort(list.files(path, pattern="_R2_001.(fastq.gz|fastq|fq|fq.gz)", full.names = TRUE))
 
-print(fnRs)
+write.table(fnFs,"test.txt",sep=";")
+
+#print(fnRs)
 
 #Generating quality plots
 #plot_qualF <- plotQualityProfile(fnFs, aggregate = TRUE)
