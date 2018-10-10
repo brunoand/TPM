@@ -67,6 +67,7 @@ if (params.metadata == null){
 
 //Creates working dir
 
+Input_dir = file(params.input)
 Working_dir = file(params.outdir)
 Matrix_dir = file(params.outdir + "/Matrix")
 QC_dir = file(params.outdir + "/QC")
@@ -140,30 +141,31 @@ if( !Log_dir.exists() ) {
 */
 
 
-	to_make_bin = Channel.value(params.input)
+	to_make_bin = Channel.value(Input_dir)
 
 process binning {
         publishDir Matrix_dir, mode: 'copy', pattern: "*.txt"
-	publishDir Log_dir, mode: 'copy', pattern: "Log_binning.txt"
+	//publishDir Log_dir, mode: 'copy', pattern: "Log_binning.txt"
         input:
         file(path) from to_make_bin
 
         output:
-        file "OTUs.txt" into to_classify
-	file "Log_binning.txt"
+	file "OTUs.txt" into to_classify
+	file "*.txt"
 	when:
-	params.mode == "Classification" || params.mode == "Complete"
+	params.mode == "Classification"
 	script:
 	"""
         #Measures execution time
         sysdate=\$(date)
         starttime=\$(date +%s.%N)
-        echo \" Performing sequencing binning with DADA2 at \$sysdate\" >> Log_binning.txt
+        echo \" Performing deconvolution with DADA2 at \$sysdate\" >> Log_binning.txt
         echo \" \" >> Log_binning.txt
-	CMD=\" Rscript /opt/Scripts/dada2.R $Working_dir/$path OTUs.txt \"
+	CMD=\" Rscript /storage/raid/home/m991833/TPM/Scripts/Dada2.R $path OTUs.txt $params.LocF $params.LocR $params.Trim $params.Overlap\"
 	exec \$CMD 2>&1 | tee -a Log_binning.txt 
-	sed -ri 's/Not all.{1,}//g' Log_binning.txt
-	sed -ri 's/_L00(1|2)_trimmed_R1.(fq|fastq)//g' OTUs.txt
+	#echo $Input_dir > teste.txt
+	#sed -ri 's/Not all.{1,}//g' Log_binning.txt
+	#sed -ri 's/_L00(1|2)_trimmed_R1.(fq|fastq)//g' OTUs.txt
 	
 
 	#cat Log_binning.txt tmp.log
@@ -184,13 +186,12 @@ to_Reference = Channel.from(params.table)
         Qiime will be used to profile 16s/18s reads in taxonomic levels, this step will generate several outputs, an OTU table with taxonomic information, a phylogenetic tree and barplots of relative abundance and tables of summarized taxonomic distribution in every taxonomic level.
 */
 
-
 process classification {
         publishDir Matrix_dir, mode: 'copy', pattern: "*.{tsv,fasta,biom,tre}"
-	publishDir Plot_dir, mode: 'copy', pattern: "*.{png,pdf}"
-	publishDir Log_dir, mode: 'copy', pattern: "log_Class.txt"
+        publishDir Plot_dir, mode: 'copy', pattern: "*.{png,pdf}"
+        publishDir Log_dir, mode: 'copy', pattern: "log_Class.txt"
 
-	input:
+        input:
         file(Input_class) from to_classify
         file(Ref_fasta) from file(params.reference)
         file(Tax_table) from file(params.table)
@@ -226,31 +227,21 @@ process classification {
 
         echo \" \" >> log_Class.txt
         echo \"Performing Taxonomic classification with Qiime \" >> Log_Class.txt
-	CMD=\" assign_taxonomy.py -i Representatives.fasta -r $Ref_fasta -t $Tax_table -o $Qiime_dir \"
-	exec \$CMD 2>&1 | tee -a Log_Class.txt
+        CMD=\" assign_taxonomy.py -i Representatives.fasta -r $Ref_fasta -t $Tax_table -o $Qiime_dir \"
+        exec \$CMD 2>&1 | tee -a Log_Class.txt
         echo \" \" >> Log_Class.txt
         echo \"Aligning representative sequences with Mafft using ${task.cpus} cores\" >> Log_Class.txt
-	mafft --thread ${task.cpus} Representatives.fasta > Representatives_aligned.fasta
-	echo \"Done \" >> Log_Class.txt
-        echo \"Building tree using $params.tree method \"
-	CMD=\" make_phylogeny.py -i Representatives_aligned.fasta -t $params.tree -o Representatives.tre \"
-        exec \$CMD 2>&1 | tee -a Log_Class.txt
-	echo \"Done\" >>Log_Class.txt
-	echo \" \" >> Log_Class.txt
-        echo \"Generating the full OTU table, summarized tables and barplots \" >> Log_Class.txt
-        merge_taxonomy.py OTU.tsv $Qiime_dir/Representatives_tax_assignments.txt OTU_tax.tsv ./ $params.RelP $params.Fig
+	merge_taxonomy.py OTU.tsv $Qiime_dir/Representatives_tax_assignments.txt OTU_tax.tsv ./
 
-	"""
+        """
 }
-
-
 
 process diversity {
 
-	publishDir Matrix_dir, mode: 'copy', pattern: "{weighted,unweighted}*.txt"
-	publishDir Qiime_dir, mode: 'copy', pattern: "OTU_table_even100.biom"
+        publishDir Matrix_dir, mode: 'copy', pattern: "{weighted,unweighted}*.txt"
+        publishDir Qiime_dir, mode: 'copy', pattern: "OTU_table_even100.biom"
         publishDir Plot_dir, mode: 'copy', pattern: "*{png,pdf}"
-	publishDir Log_dir, mode: 'copy', pattern: "Log_Diversity.txt"
+        publishDir Log_dir, mode: 'copy', pattern: "Log_Diversity.txt"
 
         input:
         file(OTU) from to_diversity
@@ -260,8 +251,8 @@ process diversity {
         output:
         file "*.biom"
         file "*{.pdf,.png}"
-	file "Log_Diversity.txt"
-	file "{weighted,unweighted}*.txt"
+        file "Log_Diversity.txt"
+        file "{weighted,unweighted}*.txt"
 
         when:
         params.mode == "Complete" || params.mode == "Classification"
@@ -274,34 +265,35 @@ process diversity {
         echo \" \" >>  log_Diversity.txt
         #echo \"Starting single rarefaction with \$params.Depth\" >> Log_Diversity.txt
         single_rarefaction.py -i $OTU -o OTU_table_${params.Depth}.biom -d $params.Depth
-	echo \"Done\" >> Log_Diversity.txt
-	echo \" \" >>  Log_Diversity.txt
+        echo \"Done\" >> Log_Diversity.txt
+        echo \" \" >>  Log_Diversity.txt
         #echo \"Starting Alpha diversity analysis with \$params.alpha_metrics\" >> Log_Diversity.txt
         alpha_diversity.py -i $OTU -m $params.alpha_metrics -t $Tree -o Alpha_diversity${params.alpha_metrics}.txt
-	
+
         echo \" \" >>  Log_Diversity.txt
         echo \"Starting Beta diversity analysis using Weichted unifrac metrics\" >> Log_Diversity.txt
         beta_diversity.py -i OTU_table_${params.Depth}.biom -m weighted_unifrac -t $Tree -o .
         echo \" \" >>  Log_Diversity.txt
-        
-	echo \"Starting Beta diversity analysis using Unweighted unifrac metrics\" >> Log_Diversity.txt
+
+        echo \"Starting Beta diversity analysis using Unweighted unifrac metrics\" >> Log_Diversity.txt
         beta_diversity.py -i OTU_table_${params.Depth}.biom -m unweighted_unifrac -t $Tree -o .
 
         echo \" \" >>  Log_Diversity.txt
         echo \"Estimating PCoA\" >> Log_Diversity.txt
         python3 /opt/Scripts/PCoA.py weighted_unifrac_OTU_table_${params.Depth}.txt $Metadata ./ ${params.Fig}
-	python3 /opt/Scripts/PCoA.py unweighted_unifrac_OTU_table_${params.Depth}.txt $Metadata ./ ${params.Fig}
+        python3 /opt/Scripts/PCoA.py unweighted_unifrac_OTU_table_${params.Depth}.txt $Metadata ./ ${params.Fig}
 
         """
 
 }
+
 // ------------------------------------------------------------------------------
 //                     Quality assessment and visualization                    
 // ------------------------------------------------------------------------------
 
 
 //Creates the channel which performs the QC
-toQC = Channel.value(params.input)
+toQC = Channel.value(Input_dir)
 
 //Process performing all the Quality Assessment
 process qualityAssessment {
@@ -309,18 +301,18 @@ process qualityAssessment {
 	publishDir  QC_dir, mode: 'copy', pattern: "*.{png,pdf}"
 	  	
 	input:
-   	val(path) from toQC
+   	file(path) from toQC
 	output:
-	file "*pdf" 
+	file "*{png,pdf}" 
 	when:
-	params.mode == "QC" | params.mode == "Complete"
+	params.mode == "QC" 
    	script:
 	"""	
-	
+	#echo $Input_dir/$path >teste.txt
 	#Logs version of the software and executed command
-	echo a
-
-	Rscript /storage/raid/home/m991833/TPM/Scripts/Dada2_QC.R /storage/raid/home/m991833/TPM/$params.input Teste
+	#ls $path >> teste.txt
+	#Rscript /storage/raid/home/m991833/TPM/Scripts/Dada2_QC.R $path Teste
+	Rscript /opt/Scripts/Dada2_QC.R $path Teste
 """
 
 }
